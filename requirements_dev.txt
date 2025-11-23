@@ -1,0 +1,42 @@
+Bottleneck @ file:///C:/miniconda3/conda-bld/bottleneck_1761938096667/work
+certifi==2025.11.12
+charset-normalizer==3.4.4
+colorama @ file:///C:/b/abs_a9ozq0l032/croot/colorama_1672387194846/work
+filelock==3.19.1
+fsspec==2025.9.0
+huggingface-hub==0.36.0
+idna==3.11
+Jinja2==3.1.6
+joblib @ file:///C:/miniconda3/conda-bld/joblib_1757926370033/work
+language-tool-python==2.7.3
+MarkupSafe==2.1.5
+mkl-service==2.5.2
+mkl_fft @ file:///C:/miniconda3/conda-bld/mkl_fft_1761592981169/work
+mkl_random @ file:///C:/miniconda3/conda-bld/mkl_random_1761593075610/work
+mpmath==1.3.0
+networkx==3.3
+numexpr @ file:///C:/miniconda3/conda-bld/numexpr_1762165723970/work
+numpy @ file:///C:/b/abs_81ri0q57xq/croot/numpy_and_numpy_base_1755590863635/work/dist/numpy-1.26.4-cp310-cp310-win_amd64.whl#sha256=b6162b3d8f61a8b10293d275d39feb04e0969ade6c6fdf4251eb84d35b403681
+packaging==25.0
+pandas @ file:///C:/b/abs_e18w9ay4we/croot/pandas_1732735115740/work/dist/pandas-2.2.3-cp310-cp310-win_amd64.whl#sha256=6fc0a0523ea4ec3f23a2b790c738c857942b4c579479f8012ac8148d675b8975
+pillow==11.3.0
+python-dateutil @ file:///C:/b/abs_3au_koqnbs/croot/python-dateutil_1716495777160/work
+pytz @ file:///C:/b/abs_f8wdzeix0n/croot/pytz_1752135878094/work
+PyYAML @ file:///C:/b/abs_782o3mbw7z/croot/pyyaml_1698096085010/work
+regex==2025.11.3
+requests==2.32.5
+safetensors==0.7.0
+scikit-learn @ file:///C:/b/abs_aajc9f7v6r/croot/scikit-learn_1722067652693/work/dist/scikit_learn-1.5.1-cp310-cp310-win_amd64.whl#sha256=d3ded78b7bb91f829cb7be157ece5f47bcf4ff0076062ac61a83823f60df892c
+scipy @ file:///C:/miniconda3/conda-bld/scipy_1759222090244/work/dist/scipy-1.15.3-cp310-cp310-win_amd64.whl#sha256=2c02ce5f7bc108a9dd2298fac421e55898c14864219396421ffe00419ec8c736
+sentence-transformers==3.2.1
+six @ file:///C:/b/abs_149wuyuo1o/croot/six_1744271521515/work
+sympy==1.14.0
+threadpoolctl @ file:///C:/b/abs_def0dwqlft/croot/threadpoolctl_1719407816649/work
+tokenizers==0.20.3
+torch==2.9.1+cu126
+torchvision==0.24.1+cu126
+tqdm @ file:///C:/b/abs_77wju137gk/croot/tqdm_1724853945787/work
+transformers==4.46.2
+typing_extensions==4.15.0
+tzdata @ file:///croot/python-tzdata_1746123641790/work
+urllib3==2.5.0
