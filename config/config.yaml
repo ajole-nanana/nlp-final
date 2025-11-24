@@ -1,0 +1,16 @@
+data:
+  train_data: "data/raw/train_data.csv"
+  test_data: "data/raw/test_data.csv"
+  processed: "data/processed"
+  text_column: "specific_dialogue_content"
+  label_column: "is_fraud"
+
+model:
+  name: "svm"  # 第一阶段先用SVM
+
+attack:
+  method: "white_box"  # 第一阶段目标
+  max_iterations: 5  # 对一条文本进行攻击时，最多进行的迭代轮数
+  beam_size: 2  # 在每一轮迭代中，要保留的最优候选样本的数量
+  max_candidates: 50  # 对于每一个待替换的词，使用BERT-MLM模型生成的最大候选同义词数量
+  similarity_threshold: 0.7  # 语义相似度阈值（硬约束验证中）
