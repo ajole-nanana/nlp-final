@@ -1,12 +1,15 @@
 data:
+  # 原始数据
   train_data: "data/raw/train_data.csv"
   test_data: "data/raw/test_data.csv"
+  # 初步数据探索和清洗后的数据
+  train_cleaned: "data/processed/cleaned/train_cleaned.csv"
+  test_cleaned: "data/processed/cleaned/test_cleaned.csv"
+
   processed: "data/processed"
-  text_column: "specific_dialogue_content"
-  label_column: "is_fraud"
 
 model:
-  name: "svm"  # 第一阶段先用SVM
+  name: "bert"
 
 attack:
   method: "white_box"  # 第一阶段目标

@@ -2,11 +2,15 @@
 project for nlp final work
 
 ```
-fraudslow_project/
+nlp_final/
 │
 ├── README.md          # 项目说明，如何安装和运行
 ├── requirements.txt    # Python依赖列表
-├── config.yaml         # 配置文件，统一管理超参数
+├── .gitignore
+│
+├── config/
+│   ├── __init__.py
+│   └── config.yaml     # 配置文件，统一管理超参数
 │
 ├── data/               # 数据目录
 │   ├── raw/           # 存放原始数据集
@@ -15,7 +19,7 @@ fraudslow_project/
 │
 ├── src/                # 源代码目录
 │   ├── __init__.py
-│   ├── data_loader.py
+│   ├── data_loader.py  # 数据加载(包括预处理)
 │   ├── models/         # 模型定义和加载
 │   ├── attackers/      # 攻击器核心代码
 │   └── utils/          # 工具函数（如相似度计算）

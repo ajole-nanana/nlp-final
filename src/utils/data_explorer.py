@@ -2,9 +2,11 @@
 数据探索和清洗工具
 1. 简单的数据质量分析
 2. 去掉不利于训练的部分字段为空的数据
+3. 清洗文本内容，去除冗余信息
 """
 import pandas as pd
 import os
+import re
 from config import CONFIG
 
 
@@ -44,6 +46,39 @@ class DataExplorer:
 
         # 显示列信息
         print(f"数据列: {list(self.train_df.columns)}")
+
+    @staticmethod
+    def clean_text_content(text):
+        """
+        清洗文本内容，专注于对话本身
+        根据您的CSV文件格式，specific_dialogue_content字段包含：
+        1. 音频内容的描述
+        2. left/right对话内容
+        3. 大量换行和空行
+        """
+        if pd.isna(text) or text == "":
+            return ""
+
+        # 如果是字符串类型，进行清洗
+        text = str(text)
+
+        # 1. 移除"音频内容："、"**"等标记
+        text = re.sub(r'音频内容：', '', text)
+        text = re.sub(r'\*\*', '', text)
+        text = re.sub(r'left:', '【左】', text)
+        text = re.sub(r'right:', '【右】', text)
+
+        # 2. 移除连续的空行和多余空格
+        text = re.sub(r'\n\s*\n', '\n', text)  # 移除连续空行
+        text = re.sub(r'[ \t]+', ' ', text)  # 合并多个空格/制表符
+
+        # 3. 移除其他特殊字符，但保留中文、英文、数字和基本标点
+        text = re.sub(r'[^\w\u4e00-\u9fa5\s，。！？；：\"\'、（）《》【】]', ' ', text)
+
+        # 4. 标准化空格和换行
+        text = re.sub(r'\s+', ' ', text)  # 合并多个空白字符
+
+        return text.strip()
 
     def preprocess_data(self):
         """预处理数据"""
@@ -87,6 +122,47 @@ class DataExplorer:
             if len(fraud_counts) == 2:
                 balance_ratio = min(fraud_counts) / max(fraud_counts)
                 print(f"数据平衡比例: {balance_ratio:.3f}")
+
+    def clean_text_columns(self):
+        """
+        清洗文本列，专注于对话内容
+        特别注意specific_dialogue_content字段
+        """
+        print("\n=== 清洗文本内容 ===")
+
+        for df_name, df in [("训练集", self.train_df), ("测试集", self.test_df)]:
+            print(f"\n清洗 {df_name} 的文本列:")
+
+            # 清洗specific_dialogue_content
+            if 'specific_dialogue_content' in df.columns:
+                before_len = len(df)
+                df_cleaned = df.copy()
+
+                # 应用文本清洗函数
+                df_cleaned['specific_dialogue_content'] = df_cleaned['specific_dialogue_content'].apply(
+                    self.clean_text_content
+                )
+
+                # 移除清洗后为空文本的行
+                mask = df_cleaned['specific_dialogue_content'].str.len() > 10  # 至少保留10个字符
+                df_cleaned = df_cleaned[mask]
+
+                removed_count = before_len - len(df_cleaned)
+                print(f"  移除空文本行: {removed_count} 行")
+                print(f"  保留有效文本行: {len(df_cleaned)} 行")
+
+                # 更新DataFrame
+                if df_name == "训练集":
+                    self.train_df = df_cleaned
+                else:
+                    self.test_df = df_cleaned
+
+                # 显示清洗前后的文本示例
+                if len(df_cleaned) > 0:
+                    print("  清洗后文本示例:")
+                    print(f"    {df_cleaned['specific_dialogue_content'].iloc[0][:200]}...")
+            else:
+                print(f"  {df_name} 中没有specific_dialogue_content列")
 
     def clean_data_simple(self):
         """简单有效的数据清洗"""
@@ -164,6 +240,9 @@ class DataExplorer:
             self.train_df['fraud_type'] = self.train_df['fraud_type'].fillna('unknown_fraud')
             self.test_df['fraud_type'] = self.test_df['fraud_type'].fillna('unknown_fraud')
 
+        # 5. 清洗文本内容 - 新增步骤
+        self.clean_text_columns()
+
         # 打印清洗报告
         print("\n=== 数据清洗报告 ===")
         for step in cleaning_steps:
@@ -195,42 +274,3 @@ class DataExplorer:
             self.train_df.to_csv(f"{output_dir}/train_cleaned.csv", index=False, encoding='utf-8')
             self.test_df.to_csv(f"{output_dir}/test_cleaned.csv", index=False, encoding='utf-8')
             print(f"清洗后的数据已保存到: {output_dir} (UTF-8编码)")
-
-
-def main():
-    """主函数 - 数据预处理流程"""
-    print("=== 欺诈对话检测数据预处理 ===")
-
-    # 数据路径
-    train_path = CONFIG['TRAIN_DATA']
-    test_path = CONFIG['TEST_DATA']
-
-    try:
-        # 初始化探索器
-        explorer = DataExplorer(train_path, test_path)
-
-        # 执行完整流程
-        explorer.load_data()
-        explorer.preprocess_data()
-        explorer.explore_data_quality()
-        explorer.analyze_fraud_distribution()
-
-        # 执行清洗
-        _clean_train_df, _clean_test_df = explorer.clean_data_simple()
-
-        # 保存清洗后的数据
-        explorer.save_cleaned_data()
-
-        print("\n=== 预处理完成 ===")
-        print(f"训练集最终大小: {len(_clean_train_df)}")
-        print(f"测试集最终大小: {len(_clean_test_df)}")
-
-        return _clean_train_df, _clean_test_df
-
-    except Exception as e:
-        print(f"数据处理过程中出现错误: {e}")
-        return None, None
-
-
-if __name__ == "__main__":
-    clean_train_df, clean_test_df = main()

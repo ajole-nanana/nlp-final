@@ -15,6 +15,8 @@ def get_config():
     config['TRAIN_DATA'] = str(project_root / config['data']['train_data'])
     config['TEST_DATA'] = str(project_root / config['data']['test_data'])
     config['PROCESSED'] = str(project_root / config['data']['processed'])
+    config['TRAIN_CLEANED'] = str(project_root / config['data']['train_cleaned'])
+    config['TEST_CLEANED'] = str(project_root / config['data']['test_cleaned'])
 
     return config
 
