@@ -1,4 +1,5 @@
 .idea/
 data/processed/
-config/__pycache__/
-src/utils/__pycache__/
+__pycache__/
+experiments/results/
+experiments/saved_models/

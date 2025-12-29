@@ -3,16 +3,17 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from transformers import BertTokenizer
 from config import CONFIG
-from utils import DataExplorer
+from src.utils import DataExplorer
 
 
 class FraudDataset(Dataset):
     """欺诈检测数据集类"""
 
-    def __init__(self, dataframe, tokenizer, max_length=128):
+    def __init__(self, dataframe, tokenizer, max_length=None):
         self.data = dataframe
         self.tokenizer = tokenizer
-        self.max_length = max_length
+        # 使用配置中的max_length
+        self.max_length = max_length if max_length else CONFIG['MAX_LENGTH']
 
     def __len__(self):
         return len(self.data)
@@ -38,14 +39,18 @@ class FraudDataset(Dataset):
         }
 
 
-def create_data_loaders(_train_df, _test_df, batch_size=16):
+def create_data_loaders(train_df, test_df, batch_size=None):
     """创建训练和测试数据加载器"""
+    # 使用配置参数
+    if batch_size is None:
+        batch_size = CONFIG['BATCH_SIZE']
+
     # 使用中文BERT tokenizer
     tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
 
-    # 创建数据集
-    train_dataset = FraudDataset(_train_df, tokenizer)
-    test_dataset = FraudDataset(_test_df, tokenizer)
+    # 创建数据集（使用配置中的max_length）
+    train_dataset = FraudDataset(train_df, tokenizer)
+    test_dataset = FraudDataset(test_df, tokenizer)
 
     # 创建数据加载器
     train_loader = DataLoader(

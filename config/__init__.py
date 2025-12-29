@@ -1,5 +1,7 @@
+# config/__init__.py
 import yaml
 from pathlib import Path
+import os
 
 
 def get_config():
@@ -14,9 +16,22 @@ def get_config():
     config['ROOT_DIR'] = str(project_root)
     config['TRAIN_DATA'] = str(project_root / config['data']['train_data'])
     config['TEST_DATA'] = str(project_root / config['data']['test_data'])
-    config['PROCESSED'] = str(project_root / config['data']['processed'])
     config['TRAIN_CLEANED'] = str(project_root / config['data']['train_cleaned'])
     config['TEST_CLEANED'] = str(project_root / config['data']['test_cleaned'])
+    config['PROCESSED'] = str(project_root / config['data']['processed'])
+
+    # 模型参数
+    config['MAX_LENGTH'] = config['model']['max_length']
+    config['BATCH_SIZE'] = config['model']['batch_size']
+    config['LEARNING_RATE'] = config['model']['learning_rate']
+    config['NUM_EPOCHS'] = config['model']['num_epochs']
+    config['HIDDEN_DROPOUT_PROB'] = config['model']['hidden_dropout_prob']
+
+    # 攻击参数
+    config['MAX_ITERATIONS'] = config['attack']['max_iterations']
+    config['BEAM_SIZE'] = config['attack']['beam_size']
+    config['MAX_CANDIDATES'] = config['attack']['max_candidates']
+    config['SIMILARITY_THRESHOLD'] = config['attack']['similarity_threshold']
 
     return config
 

@@ -9,7 +9,12 @@ data:
   processed: "data/processed"
 
 model:
-  name: "bert"
+  model_name: "bert-base-chinese"
+  max_length: 256
+  batch_size: 16
+  learning_rate: 2e-5
+  num_epochs: 3
+  hidden_dropout_prob: 0.1
 
 attack:
   method: "white_box"  # 第一阶段目标
