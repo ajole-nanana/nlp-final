@@ -1,1 +1,1 @@
-from .bert import BertClassifier
+from .svm_model import SVMModel

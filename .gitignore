@@ -1,5 +1,7 @@
 .idea/
 data/processed/
+data/adversarial/
+data/word_vectors/
 __pycache__/
 experiments/results/
-experiments/saved_models/
+experiments/save_models/

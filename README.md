@@ -18,15 +18,16 @@ nlp_final/
 │   └── adversarial/   # 存放生成的对抗样本
 │
 ├── src/                # 源代码目录
-│   ├── __init__.py
 │   ├── data_loader.py  # 数据加载(包括预处理)
 │   ├── models/         # 模型定义和加载
 │   ├── attackers/      # 攻击器核心代码
 │   └── utils/          # 工具函数（如相似度计算）
+│       └── data_explorer.py
 │
 └── experiments/        # 实验脚本和结果输出
-    ├── train_baseline.py
     ├── run_attack.py
+    ├── train_victim.py # 训练受害模型
+    ├── save_models/    # 保存模型
     └── results/        # 自动保存实验结果和图表
 ```
 
