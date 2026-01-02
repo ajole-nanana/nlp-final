@@ -15,12 +15,15 @@ nlp_final/
 ├── data/               # 数据目录
 │   ├── raw/           # 存放原始数据集
 │   ├── processed/     # 存放预处理后的数据
-│   └── adversarial/   # 存放生成的对抗样本
+│   ├── adversarial/   # 存放生成的对抗样本
+│   └── word_vectors   # 存放下载的词向量
 │
 ├── src/                # 源代码目录
 │   ├── data_loader.py  # 数据加载(包括预处理)
 │   ├── models/         # 模型定义和加载
+│   │   └── svm_model.py # SVM受害模型
 │   ├── attackers/      # 攻击器核心代码
+│   │   └── wordvec_attacker.py # 渐进式词向量攻击器
 │   └── utils/          # 工具函数（如相似度计算）
 │       └── data_explorer.py
 │

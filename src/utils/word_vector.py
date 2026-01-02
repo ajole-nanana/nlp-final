@@ -5,6 +5,7 @@ import os
 from tqdm import tqdm
 from typing import Dict, List, Tuple
 import logging
+from config import CONFIG
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -198,7 +199,7 @@ def get_word_vector_manager(vector_path: str = None, cache_path: str = None):
             _word_vector_manager = WordVectorManager(vector_path=vector_path)
         else:
             # 默认路径
-            default_path = "data/word_vectors/cc.zh.300.vec"
+            default_path = CONFIG['ROOT_DIR'] + "/data/word_vectors/cc.zh.300.vec"
             if os.path.exists(default_path):
                 _word_vector_manager = WordVectorManager(vector_path=default_path)
             else:

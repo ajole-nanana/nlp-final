@@ -7,8 +7,9 @@ import matplotlib.pyplot as plt
 import json
 import jieba
 import matplotlib
+import time
 
-# 设置中文字体，避免中文显示问题
+# 设置中文字体
 matplotlib.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'DejaVu Sans']
 matplotlib.rcParams['axes.unicode_minus'] = False
 
@@ -19,15 +20,14 @@ from src.models.svm_model import SVMModel
 from src.attackers.wordvec_attacker import WordVectorAttacker
 
 
-def run_full_dataset_experiment():
-    """运行全数据集实验"""
-    print("=== 全数据集词向量对抗攻击实验 ===")
+def run_progressive_attack_experiment():
+    """运行渐进式对抗攻击实验"""
+    print("=== 渐进式词向量对抗攻击实验 ===")
+    start_time = time.time()
 
     # 1. 加载所有测试数据
     print("\n1. 加载所有测试数据...")
     test_df = pd.read_csv(CONFIG['TEST_CLEANED'])
-
-    # 使用所有测试数据
     X_test = test_df['specific_dialogue_content'].astype(str).tolist()
     y_test = test_df['is_fraud'].astype(int).tolist()
 
@@ -58,8 +58,8 @@ def run_full_dataset_experiment():
     print(f"真阴性(TN): {cm[0, 0]}, 假阳性(FP): {cm[0, 1]}")
     print(f"假阴性(FN): {cm[1, 0]}, 真阳性(TP): {cm[1, 1]}")
 
-    # 4. 词向量攻击实验
-    print("\n4. 运行词向量攻击（全数据集）...")
+    # 4. 渐进式攻击实验
+    print("\n4. 运行渐进式词向量攻击...")
 
     # 设置词向量路径
     vector_path = CONFIG['ROOT_DIR'] + "/data/word_vectors/cc.zh.300.vec"
@@ -70,20 +70,23 @@ def run_full_dataset_experiment():
 
     wordvec_attacker = WordVectorAttacker(svm, vector_path=vector_path)
 
-    # 生成对抗样本（使用快速方法）
-    adv_texts_wordvec, attack_success_rate = wordvec_attacker.generate_adversarial_fast(
-        X_test, y_test, target_label=0
+    # 使用渐进式攻击
+    adv_texts, attack_success_rate = wordvec_attacker.generate_adversarial_batch(
+        X_test, y_test, max_attempts=3
     )
 
     # 分析结果
-    results_wordvec = wordvec_attacker.evaluate_attack(X_test, adv_texts_wordvec, y_test)
+    results = wordvec_attacker.evaluate_attack(X_test, adv_texts, y_test)
 
-    print(f"\n词向量攻击结果:")
-    print(f"  对抗样本准确率: {results_wordvec['adversarial_accuracy']:.4f}")
-    print(f"  准确率下降: {results_wordvec['accuracy_drop']:.4f}")
-    print(f"  攻击成功率: {results_wordvec['attack_success_rate']:.4f}")
-    print(f"  文本平均相似度: {results_wordvec['avg_text_similarity']:.4f}")
-    print(f"  成功攻击数: {results_wordvec['successful_attacks']}/{results_wordvec['total_fraud_samples']}")
+    print(f"\n渐进式攻击结果:")
+    print(f"  对抗样本准确率: {results['adversarial_accuracy']:.4f}")
+    print(f"  准确率下降: {results['accuracy_drop']:.4f}")
+    print(f"  攻击成功率: {results['attack_success_rate']:.4f}")
+    print(f"  文本平均相似度: {results['avg_text_similarity']:.4f}")
+    print(f"  成功攻击数: {results['successful_attacks']}/{results['total_fraud_samples']}")
+
+    # 计算相对准确率下降
+    relative_drop = (original_acc - results['adversarial_accuracy']) / original_acc * 100
 
     # 5. 保存结果
     print("\n5. 保存实验结果...")
@@ -93,13 +96,13 @@ def run_full_dataset_experiment():
     # 保存详细结果
     results_df = pd.DataFrame({
         'original_text': X_test,
-        'adversarial_text': adv_texts_wordvec,
+        'adversarial_text': adv_texts,
         'true_label': y_test,
         'original_pred': original_preds,
-        'adversarial_pred': svm.predict(adv_texts_wordvec)
+        'adversarial_pred': svm.predict(adv_texts)
     })
 
-    results_path = os.path.join(CONFIG['ROOT_DIR'] + "/data/adversarial", "full_dataset_adversarial_samples.csv")
+    results_path = os.path.join(results_dir, "progressive_adversarial_samples.csv")
     results_df.to_csv(results_path, index=False, encoding='utf-8-sig')
     print(f"对抗样本已保存到: {results_path}")
 
@@ -109,8 +112,11 @@ def run_full_dataset_experiment():
             'total_samples': len(X_test),
             'fraud_samples': sum(y_test),
             'non_fraud_samples': len(y_test) - sum(y_test),
-            'method': 'fast_wordvec_attack',
-            'dataset': 'full_test_set'
+            'method': 'progressive_wordvec_attack',
+            'word_vector_size': 500000,
+            'word_vector_dim': 300,
+            'max_attempts': 3,
+            'attack_strategy': 'progressive (10%, 20%, 30% replacement ratios)'
         },
         'original_performance': {
             'accuracy': float(original_acc),
@@ -122,34 +128,33 @@ def run_full_dataset_experiment():
             }
         },
         'adversarial_attack': {
-            'adversarial_accuracy': float(results_wordvec['adversarial_accuracy']),
-            'accuracy_drop': float(results_wordvec['accuracy_drop']),
-            'attack_success_rate': float(results_wordvec['attack_success_rate']),
-            'avg_text_similarity': float(results_wordvec['avg_text_similarity']),
-            'successful_attacks': int(results_wordvec['successful_attacks']),
-            'total_fraud_samples': int(results_wordvec['total_fraud_samples']),
-            'accuracy_relative_drop': float(
-                (original_acc - results_wordvec['adversarial_accuracy']) / original_acc * 100)
+            'adversarial_accuracy': float(results['adversarial_accuracy']),
+            'accuracy_drop': float(results['accuracy_drop']),
+            'attack_success_rate': float(results['attack_success_rate']),
+            'avg_text_similarity': float(results['avg_text_similarity']),
+            'successful_attacks': int(results['successful_attacks']),
+            'total_fraud_samples': int(results['total_fraud_samples']),
+            'accuracy_relative_drop': float(relative_drop)
         }
     }
 
-    stats_path = os.path.join(results_dir, "full_dataset_attack_statistics.json")
+    stats_path = os.path.join(results_dir, "progressive_attack_statistics.json")
     with open(stats_path, 'w', encoding='utf-8') as f:
         json.dump(stats, f, ensure_ascii=False, indent=2)
     print(f"统计结果已保存到: {stats_path}")
 
     # 6. 可视化
     print("\n6. 生成可视化图表...")
-    plt.figure(figsize=(15, 5))
+    plt.figure(figsize=(12, 5))
 
     # 子图1：准确率对比
-    plt.subplot(1, 3, 1)
+    plt.subplot(1, 2, 1)
     methods = ['原始模型', '对抗样本']
-    accuracies = [original_acc, results_wordvec['adversarial_accuracy']]
+    accuracies = [original_acc, results['adversarial_accuracy']]
     colors = ['blue', 'orange']
 
     bars = plt.bar(methods, accuracies, color=colors)
-    plt.title('模型准确率对比（全数据集）', fontsize=14)
+    plt.title('模型准确率对比', fontsize=14)
     plt.ylabel('准确率', fontsize=12)
     plt.ylim(0, 1.1)
 
@@ -159,10 +164,10 @@ def run_full_dataset_experiment():
                  f'{acc:.3f}', ha='center', va='bottom', fontsize=11)
 
     # 子图2：攻击效果
-    plt.subplot(1, 3, 2)
-    metrics = ['攻击成功率', '准确率下降']
-    values = [results_wordvec['attack_success_rate'], results_wordvec['accuracy_drop']]
-    colors = ['green', 'red']
+    plt.subplot(1, 2, 2)
+    metrics = ['攻击成功率', '准确率下降', '相对准确率下降']
+    values = [results['attack_success_rate'], results['accuracy_drop'], relative_drop / 100]
+    colors = ['green', 'red', 'purple']
 
     bars = plt.bar(metrics, values, color=colors)
     plt.title('攻击效果评估', fontsize=14)
@@ -170,142 +175,62 @@ def run_full_dataset_experiment():
     plt.ylim(0, 1.1)
 
     for bar, val in zip(bars, values):
-        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.02,
-                 f'{val:.3f}', ha='center', va='bottom', fontsize=11)
-
-    # 子图3：性能对比
-    plt.subplot(1, 3, 3)
-    performance_metrics = ['相对准确率下降']
-    performance_values = [stats['adversarial_attack']['accuracy_relative_drop']]
-
-    bars = plt.bar(performance_metrics, performance_values, color='purple')
-    plt.title('性能下降百分比', fontsize=14)
-    plt.ylabel('百分比 (%)', fontsize=12)
-
-    for bar, val in zip(bars, performance_values):
-        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5,
-                 f'{val:.1f}%', ha='center', va='bottom', fontsize=11)
+        if metrics[list(bars).index(bar)] == '相对准确率下降':
+            plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.02,
+                     f'{val * 100:.1f}%', ha='center', va='bottom', fontsize=11)
+        else:
+            plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.02,
+                     f'{val:.3f}', ha='center', va='bottom', fontsize=11)
 
     plt.tight_layout()
-    chart_path = os.path.join(results_dir, "full_dataset_attack_results.png")
+    chart_path = os.path.join(results_dir, "progressive_attack_results.png")
     plt.savefig(chart_path, dpi=300, bbox_inches='tight')
     print(f"图表已保存到: {chart_path}")
 
-    # 7. 详细分析报告
-    print("\n7. 生成详细分析报告...")
+    # 7. 示例展示
+    print("\n7. 对抗样本示例:")
+    print("=" * 120)
 
     # 找出攻击成功的样本
     successful_samples = []
     for i in range(len(X_test)):
         if y_test[i] == 1:  # 欺诈样本
             orig_pred = original_preds[i]
-            adv_pred = svm.predict([adv_texts_wordvec[i]])[0]
+            adv_pred = svm.predict([adv_texts[i]])[0]
 
             if orig_pred == 1 and adv_pred == 0:  # 攻击成功
                 successful_samples.append(i)
 
-    # 找出攻击失败的样本（欺诈样本但攻击失败）
-    failed_samples = []
-    for i in range(len(X_test)):
-        if y_test[i] == 1:  # 欺诈样本
-            orig_pred = original_preds[i]
-            adv_pred = svm.predict([adv_texts_wordvec[i]])[0]
-
-            if orig_pred == 1 and adv_pred == 1:  # 攻击失败
-                failed_samples.append(i)
-
-    # 生成分析报告
-    analysis_report = {
-        'summary': {
-            'total_samples': len(X_test),
-            'fraud_samples': sum(y_test),
-            'non_fraud_samples': len(y_test) - sum(y_test),
-            'successful_attacks': len(successful_samples),
-            'failed_attacks': len(failed_samples),
-            'attack_success_rate': len(successful_samples) / sum(y_test) if sum(y_test) > 0 else 0
-        },
-        'attack_success_examples': [],
-        'attack_failed_examples': []
-    }
-
-    # 添加攻击成功的示例
-    for idx in successful_samples[:5]:  # 最多5个示例
-        analysis_report['attack_success_examples'].append({
-            'index': idx,
-            'original_text_preview': X_test[idx][:100] + "..." if len(X_test[idx]) > 100 else X_test[idx],
-            'adversarial_text_preview': adv_texts_wordvec[idx][:100] + "..." if len(adv_texts_wordvec[idx]) > 100 else
-            adv_texts_wordvec[idx],
-            'original_prediction': int(original_preds[idx]),
-            'adversarial_prediction': int(svm.predict([adv_texts_wordvec[idx]])[0]),
-            'text_similarity': _calculate_similarity(X_test[idx], adv_texts_wordvec[idx])
-        })
-
-    # 添加攻击失败的示例
-    for idx in failed_samples[:5]:  # 最多5个示例
-        analysis_report['attack_failed_examples'].append({
-            'index': idx,
-            'original_text_preview': X_test[idx][:100] + "..." if len(X_test[idx]) > 100 else X_test[idx],
-            'adversarial_text_preview': adv_texts_wordvec[idx][:100] + "..." if len(adv_texts_wordvec[idx]) > 100 else
-            adv_texts_wordvec[idx],
-            'original_prediction': int(original_preds[idx]),
-            'adversarial_prediction': int(svm.predict([adv_texts_wordvec[idx]])[0]),
-            'text_similarity': _calculate_similarity(X_test[idx], adv_texts_wordvec[idx])
-        })
-
-    # 保存分析报告
-    analysis_path = os.path.join(results_dir, "full_dataset_analysis_report.json")
-    with open(analysis_path, 'w', encoding='utf-8') as f:
-        json.dump(analysis_report, f, ensure_ascii=False, indent=2)
-    print(f"分析报告已保存到: {analysis_path}")
-
-    # 8. 示例展示
-    print("\n8. 对抗样本示例分析:")
-    print("=" * 120)
-
+    # 显示攻击成功的示例
     if successful_samples:
-        print(f"\n攻击成功示例（共{len(successful_samples)}个）:")
+        print(f"找到 {len(successful_samples)} 个攻击成功的样本")
 
         for i, idx in enumerate(successful_samples[:3]):  # 最多显示3个
-            print(f"\n示例 {i + 1} (索引: {idx}):")
+            print(f"\n示例 {i + 1} (攻击成功):")
             print(f"原始文本: {X_test[idx][:80]}...")
-            print(f"对抗文本: {adv_texts_wordvec[idx][:80]}...")
+            print(f"对抗文本: {adv_texts[idx][:80]}...")
 
-            # 计算文本变化
+            # 计算相似度
             orig_words = set([w for w in jieba.lcut(X_test[idx]) if len(w.strip()) > 0])
-            adv_words = set([w for w in jieba.lcut(adv_texts_wordvec[idx]) if len(w.strip()) > 0])
-            changed_words = adv_words - orig_words
-            common_words = adv_words & orig_words
+            adv_words = set([w for w in jieba.lcut(adv_texts[idx]) if len(w.strip()) > 0])
+            if orig_words and adv_words:
+                similarity = len(orig_words & adv_words) / len(orig_words | adv_words)
+                print(f"文本相似度: {similarity:.3f}")
 
-            print(f"原始预测: {original_preds[idx]}, 对抗预测: {svm.predict([adv_texts_wordvec[idx]])[0]}")
-            print(f"共同词数: {len(common_words)}, 变化词数: {len(changed_words)}")
-            if changed_words:
-                print(f"主要替换词: {list(changed_words)[:5]}")
+            print(f"原始预测: {original_preds[idx]}, 攻击后预测: {svm.predict([adv_texts[idx]])[0]}")
             print("-" * 80)
     else:
-        print("\n没有攻击成功的样本")
+        print("没有攻击成功的样本")
 
-    print("\n" + "=" * 120)
+    total_time = time.time() - start_time
+    print(f"\n实验总用时: {total_time:.1f}秒")
 
     return stats
 
 
-def _calculate_similarity(text1, text2):
-    """计算两个文本的相似度"""
-    words1 = set([w for w in jieba.lcut(text1) if len(w.strip()) > 0])
-    words2 = set([w for w in jieba.lcut(text2) if len(w.strip()) > 0])
-
-    if not words1 or not words2:
-        return 0.0
-
-    intersection = len(words1 & words2)
-    union = len(words1 | words2)
-
-    return intersection / union if union > 0 else 0.0
-
-
-def run_experiment_with_progress():
-    """运行实验并显示进度"""
-    print("=== 全数据集对抗攻击实验 ===")
+def main():
+    """主函数"""
+    print("=== 渐进式对抗攻击实验 ===")
 
     # 检查词向量文件
     vector_path = CONFIG['ROOT_DIR'] + "/data/word_vectors/cc.zh.300.vec"
@@ -316,7 +241,7 @@ def run_experiment_with_progress():
 
     # 运行实验
     try:
-        results = run_full_dataset_experiment()
+        results = run_progressive_attack_experiment()
 
         print("\n" + "=" * 80)
         print("实验完成！")
@@ -344,4 +269,4 @@ def run_experiment_with_progress():
 
 
 if __name__ == "__main__":
-    run_experiment_with_progress()
+    main()
